@@ -121,6 +121,13 @@ data class ClassDefinition(
     val methods: List<MethodDefinition>,
 )
 
+/** A multi-class program: multiple ClassDefinitions with a designated main class. */
+@Serializable
+data class ProgramDefinition(
+    val classes: List<ClassDefinition>,
+    val mainClass: String,
+)
+
 /**
  * Custom deserializer that dispatches on the "op" field to pick the right Instruction subtype.
  */

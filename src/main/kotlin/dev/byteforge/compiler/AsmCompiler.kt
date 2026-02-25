@@ -11,6 +11,15 @@ class CompilationException(message: String, cause: Throwable? = null) : RuntimeE
 object AsmCompiler {
 
     /**
+     * Compiles all classes in a ProgramDefinition and returns a map of class name to bytecode.
+     */
+    fun compileAll(program: ProgramDefinition): Map<String, ByteArray> {
+        return program.classes.associate { classDef ->
+            classDef.name to compile(classDef)
+        }
+    }
+
+    /**
      * Compiles a ClassDefinition into JVM bytecode (a valid .class file as byte[]).
      */
     fun compile(classDef: ClassDefinition): ByteArray {

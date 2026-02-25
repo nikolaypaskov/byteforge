@@ -71,6 +71,46 @@ object DynamicRunner {
         }
     }
 
+    /**
+     * Loads multiple classes from a bytecode map and invokes the main class's main(String[]) method.
+     * Captures stdout and returns the result.
+     */
+    fun run(mainClass: String, bytecodeMap: Map<String, ByteArray>, saveClass: Boolean = false): RunResult {
+        if (saveClass) {
+            bytecodeMap.forEach { (name, bytes) -> saveClassFile(name, bytes) }
+        }
+
+        return try {
+            val classLoader = BytecodeClassLoader(bytecodeMap)
+            val clazz = classLoader.loadClass(mainClass)
+
+            val mainMethod = try {
+                clazz.getMethod("main", Array<String>::class.java)
+            } catch (e: NoSuchMethodException) {
+                return RunResult.Failure("Class '$mainClass' has no main(String[]) method")
+            }
+
+            val baos = ByteArrayOutputStream()
+            val capturedOut = PrintStream(baos)
+            val originalOut = System.out
+            val originalErr = System.err
+
+            try {
+                System.setOut(capturedOut)
+                System.setErr(capturedOut)
+                mainMethod.invoke(null, arrayOf<String>())
+                capturedOut.flush()
+                RunResult.Success(baos.toString())
+            } finally {
+                System.setOut(originalOut)
+                System.setErr(originalErr)
+            }
+        } catch (e: Exception) {
+            val cause = e.cause ?: e
+            RunResult.Failure("Execution failed: ${cause.message}", cause)
+        }
+    }
+
     private fun saveClassFile(className: String, bytecode: ByteArray) {
         val fileName = "${className.substringAfterLast('.')}.class"
         File(fileName).writeBytes(bytecode)
